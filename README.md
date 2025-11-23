@@ -122,8 +122,6 @@
     button.btn {
       padding: 10px 14px;
       border-radius: 10px;
-      background: #0078ff;
-      color: white;
       border: 0;
       background: var(--accent);
       color: #0a7792;
@@ -272,5 +270,187 @@
       </footer>
     </div>
   </div>
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const skipBtn = document.getElementById('skipBtn');
+    const questionEl = document.getElementById('question');
+    const answerInput = document.getElementById('answerInput');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const lastEl = document.getElementById('last');
+    const timeLeftEl = document.getElementById('timeLeft');
+    const bar = document.getElementById('bar');
+    const askedEl = document.getElementById('asked');
+    const streakEl = document.getElementById('streak');
+    const difficultySel = document.getElementById('difficulty');
+    const timeRange = document.getElementById('timeRange');
+    const timePerQEl = document.getElementById('timePerQ');
+    const toggleSoundBtn = document.getElementById('toggleSound');
+
+    let state = {
+      running: false,
+      score: 0,
+      best: Number(localStorage.getItem('jeucalc_best')||0),
+      asked: 0,
+      streak: 0,
+      currentAnswer: null,
+      intervalId: null,
+      perQuestion: Number(timeRange.value),
+      timeLeft: 0,
+      sound: true
+    };
+
+    bestEl.textContent = state.best;
+    timePerQEl.textContent = state.perQuestion;
+    timeLeftEl.textContent = '--';
+
+    function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+
+    function generate(difficulty){
+      const opPool = ['+','-','*','/'];
+      let a,b,op;
+      if(difficulty==='easy'){
+        op = opPool[randInt(0,1)];
+        a = randInt(1,20);
+        b = randInt(1,20);
+      } else if(difficulty==='medium'){
+        op = opPool[randInt(0,2)];
+        a = randInt(2,50);
+        b = randInt(1,12);
+      } else {
+        op = opPool[randInt(0,3)];
+        a = randInt(10,150);
+        b = randInt(2,25);
+      }
+
+      if(op === '/'){
+        b = randInt(2,12);
+        const prod = a * b;
+        a = prod; 
+      }
+
+      const expr = `${a} ${op} ${b}`;
+      let ans = eval(expr);
+      if(op === '/') ans = Math.trunc(ans);
+      return {question:expr,answer:ans};
+    }
+
+    function startGame(){
+      if(state.running) return;
+      state.running = true;
+      state.score = 0; state.asked=0; state.streak=0;
+      updateUI();
+      nextQuestion();
+    }
+
+    function resetGame(){
+      clearInterval(state.intervalId);
+      state.running = false;
+      state.score = 0; state.asked=0; state.streak=0; state.currentAnswer=null; state.timeLeft='--';
+      bar.style.width='0%';
+      questionEl.textContent = 'Appuyez sur Démarrer pour recommencer';
+      updateUI();
+    }
+
+    function updateUI(){
+      scoreEl.textContent = state.score;
+      bestEl.textContent = state.best;
+      askedEl.textContent = state.asked;
+      streakEl.textContent = state.streak;
+      timePerQEl.textContent = state.perQuestion;
+      timeRange.value = state.perQuestion;
+    }
+
+    function tick(){
+      if(typeof state.timeLeft !== 'number') return;
+      state.timeLeft -= 0.25; // t250msick every 
+      if(state.timeLeft <= 0){
+        wrongAnswer('Temps écoulé');
+        return;
+      }
+      timeLeftEl.textContent = Math.ceil(state.timeLeft)+'s';
+      const pct = Math.max(0,((state.perQuestion-state.timeLeft)/state.perQuestion)*100);
+      bar.style.width = `${pct}%`;
+    }
+
+    function scheduleTicker(){
+      clearInterval(state.intervalId);
+      state.intervalId = setInterval(tick,250);
+    }
+
+    function nextQuestion(){
+      const dif = difficultySel.value;
+      const {question,answer} = generate(dif);
+      state.currentAnswer = answer;
+      questionEl.textContent = question;
+      answerInput.value='';
+      answerInput.focus();
+      state.timeLeft = state.perQuestion;
+      timeLeftEl.textContent = state.perQuestion+'s';
+      bar.style.width = '0%';
+      scheduleTicker();
+    }
+
+    function correctAnswer(){
+      state.score += 10;
+      state.asked += 1;
+      state.streak += 1;
+      lastEl.textContent = 'Correct ✓';
+
+      finishRound();
+    }
+
+    function wrongAnswer(reason='Mauvais'){ 
+      state.asked += 1;
+      state.streak = 0;
+      lastEl.textContent = reason + ' ✗';
+
+      finishRound();
+    }
+
+    function finishRound(){
+      clearInterval(state.intervalId);
+      bar.style.width='100%';
+      setTimeout(()=>{
+        if(state.score > state.best){ state.best = state.score; localStorage.setItem('jeucalc_best', state.best); }
+        updateUI();
+        if(state.running) nextQuestion();
+      }, 350);
+    }
+    startBtn.addEventListener('click', ()=>{
+      startGame();
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      resetGame();
+    });
+
+    submitBtn.addEventListener('click', ()=>{
+      if(!state.running) return;
+      const val = answerInput.value.trim();
+      if(val==='') return;
+      const num = Number(val);
+      if(Number.isNaN(num)) { wrongAnswer('Entrée invalide'); return; }
+      if(num === state.currentAnswer) correctAnswer(); else wrongAnswer('Incorrect');
+    });
+ 
+    skipBtn.addEventListener('click', ()=>{
+      if(!state.running) return;
+      wrongAnswer('Passée');
+    });
+
+    (function(){
+      const b = Number(localStorage.getItem('jeucalc_best')||0);
+      state.best = b; bestEl.textContent = b;
+    })();
+
+    setTimeout(()=>{
+      questionEl.style.transition='transform 400ms ease';
+      questionEl.style.transform='translateY(0)';
+    },200);
+
+  </script>
 </body>
 </html>
