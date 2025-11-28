@@ -271,6 +271,7 @@
     </div>
   </div>
   <script>
+    // Elements
     const startBtn = document.getElementById('startBtn');
     const resetBtn = document.getElementById('resetBtn');
     const submitBtn = document.getElementById('submitBtn');
@@ -288,7 +289,6 @@
     const timeRange = document.getElementById('timeRange');
     const timePerQEl = document.getElementById('timePerQ');
     const toggleSoundBtn = document.getElementById('toggleSound');
-
     let state = {
       running: false,
       score: 0,
@@ -301,13 +301,10 @@
       timeLeft: 0,
       sound: true
     };
-
     bestEl.textContent = state.best;
     timePerQEl.textContent = state.perQuestion;
     timeLeftEl.textContent = '--';
-
     function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
-
     function generate(difficulty){
       const opPool = ['+','-','*','/'];
       let a,b,op;
@@ -325,10 +322,10 @@
         b = randInt(2,25);
       }
 
-      if(op === '/'){
+       if(op === '/'){
         b = randInt(2,12);
         const prod = a * b;
-        a = prod; 
+        a = prod; // so a/b = integer
       }
 
       const expr = `${a} ${op} ${b}`;
@@ -365,7 +362,7 @@
 
     function tick(){
       if(typeof state.timeLeft !== 'number') return;
-      state.timeLeft -= 0.25; // t250msick every 
+      state.timeLeft -= 0.25; // tick every 250ms
       if(state.timeLeft <= 0){
         wrongAnswer('Temps écoulé');
         return;
@@ -398,7 +395,8 @@
       state.asked += 1;
       state.streak += 1;
       lastEl.textContent = 'Correct ✓';
-
+      flash(true);
+      playBeep(true);
       finishRound();
     }
 
@@ -406,7 +404,8 @@
       state.asked += 1;
       state.streak = 0;
       lastEl.textContent = reason + ' ✗';
-
+      flash(false);
+      playBeep(false);
       finishRound();
     }
 
@@ -414,11 +413,34 @@
       clearInterval(state.intervalId);
       bar.style.width='100%';
       setTimeout(()=>{
+        // update best
         if(state.score > state.best){ state.best = state.score; localStorage.setItem('jeucalc_best', state.best); }
         updateUI();
         if(state.running) nextQuestion();
       }, 350);
     }
+
+    function flash(ok){
+      const cls = ok? 'pulse-good' : 'pulse-bad';
+      questionEl.classList.remove('pulse-good','pulse-bad');
+      void questionEl.offsetWidth;
+      questionEl.classList.add(cls);
+    }
+
+    function playBeep(ok){
+      if(!state.sound) return;
+      try{
+        const ctx = new (window.AudioContext||window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = ok? 'sine':'square';
+        o.frequency.value = ok? 880:220;
+        g.gain.value = 0.05;
+        o.connect(g); g.connect(ctx.destination);
+        o.start(); o.stop(ctx.currentTime + 0.08);
+      }catch(e){}
+    }
+
     startBtn.addEventListener('click', ()=>{
       startGame();
     });
@@ -435,10 +457,31 @@
       if(Number.isNaN(num)) { wrongAnswer('Entrée invalide'); return; }
       if(num === state.currentAnswer) correctAnswer(); else wrongAnswer('Incorrect');
     });
- 
+
     skipBtn.addEventListener('click', ()=>{
       if(!state.running) return;
       wrongAnswer('Passée');
+    });
+
+    answerInput.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter'){ e.preventDefault(); submitBtn.click(); }
+    });
+
+    difficultySel.addEventListener('change', ()=>{ /* no-op - will affect next q */ });
+
+    timeRange.addEventListener('input', (e)=>{
+      state.perQuestion = Number(e.target.value);
+      timePerQEl.textContent = state.perQuestion;
+    });
+
+    toggleSoundBtn.addEventListener('click', ()=>{
+      state.sound = !state.sound;
+      toggleSoundBtn.textContent = 'Son: ' + (state.sound? 'ON':'OFF');
+    });
+
+    document.addEventListener('keydown', (e)=>{
+      if(e.key.toLowerCase()==='s' && !state.running) startBtn.click();
+      if(e.key.toLowerCase()==='r') resetBtn.click();
     });
 
     (function(){
