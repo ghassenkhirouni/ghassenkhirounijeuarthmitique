@@ -1,0 +1,211 @@
+#include <iostream>
+#include <cstring>
+#include <stdexcept>
+
+
+class ecole {
+private:
+    char *nom;
+    char *adresse;
+    int ne;       
+    int *eleve;    
+
+public:
+    ecole(const char *n = NULL, const char *adr = NULL, int nb_ens = 0, const int *nb_eleve_par_niv = NULL)
+        : ne(nb_ens) {
+        
+        if (nb_ens < 0) {
+            throw out_of_range("Le nombre d’enseignants ne peut pas être négatif.");
+        }
+        
+        if (n) {
+            nom = new char[strlen(n) + 1];
+            strcpy(nom, n);
+        } else {
+            nom = NULL;
+        }
+
+        if (adr) {
+            adresse = new char[strlen(adr) + 1];
+            strcpy(adresse, adr);
+        } else {
+            adresse = NULL;
+        }
+
+        eleve = new int[6];
+        if (nb_eleve_par_niv) {
+            for (int i = 0; i < 6; ++i) {
+                if (nb_eleve_par_niv[i] < 0) {
+                    delete[] eleve;
+                    throw out_of_range("Le nombre d’élèves pour un niveau ne peut pas être négatif.");
+                }
+                eleve[i] = nb_eleve_par_niv[i];
+            }
+        } else {
+            for (int i = 0; i < 6; ++i) {
+                eleve[i] = 0;
+            }
+        }
+    }
+
+    ecole(const ecole &autre)
+        : ne(autre.ne) {
+        
+        if (autre.nom) {
+            nom = new char[strlen(autre.nom) + 1];
+            strcpy(nom, autre.nom);
+        } else {
+            nom = NULL;
+        }
+
+        if (autre.adresse) {
+            adresse = new char[strlen(autre.adresse) + 1];
+            strcpy(adresse, autre.adresse);
+        } else {
+            adresse = NULL;
+        }
+
+        eleve = new int[6];
+        for (int i = 0; i < 6; ++i) {
+            eleve[i] = autre.eleve[i];
+        }
+    }
+
+    virtual ~ecole() {
+        delete[] nom;
+        delete[] adresse;
+        delete[] eleve;
+        nom = NULL;
+        adresse = NULL;
+        eleve = NULL;
+    }
+
+    const char *get_nom() const {
+        return nom;
+    }
+
+    int get_eleve_niveau(int niveau) const {
+        if (niveau >= 1 && niveau <= 6) {
+            return eleve[niveau - 1];
+        } else {
+            throw out_of_range("Le niveau d'étude doit être entre 1 et 6.");
+        }
+    }
+
+    ecole &operator++() {
+        ++ne;
+        return *this;
+    }
+
+    ecole operator+(const ecole &autre) const {
+        char nouveau_nom[100];
+        char nouvelle_adresse[100];
+
+        cout << "Entrez le nom de la nouvelle école (fusionnée) : ";
+        cin >> nouveau_nom;
+        cout << "Entrez l'adresse de la nouvelle école (fusionnée) : ";
+        cin >> nouvelle_adresse;
+
+        int nouveau_ne = this->ne + autre.ne;
+
+        int nouveau_eleve[6];
+        for (int i = 0; i < 6; ++i) {
+            nouveau_eleve[i] = this->eleve[i] + autre.eleve[i];
+        }
+
+        return ecole(nouveau_nom, nouvelle_adresse, nouveau_ne, nouveau_eleve);
+    }
+
+    operator char *() const {
+        static char buffer[512];
+        
+        char eleve_str[250] = "";
+        for (int i = 0; i < 6; ++i) {
+            char temp[30];
+            snprintf(temp, sizeof(temp), "Niveau %d: %d ; ", i + 1, eleve[i]);
+            strcat(eleve_str, temp);
+        }
+
+        snprintf(buffer, sizeof(buffer),
+                 "Nom : %s\nAdresse : %s\nEnseignants : %d\nÉlèves par niveau : %s",
+                 (nom ? nom : "Non spécifié"), (adresse ? adresse : "Non spécifiée"), ne, eleve_str);
+        
+        return buffer;
+    }
+    
+    virtual void view() const {
+        cout << "\n--- Détails de l'École Primaire ---\n";
+        cout << (char *)(*this) << endl;
+    }
+};
+
+class ecole_privee : public ecole {
+private:
+    char *gerant;  
+    double capital; 
+
+public:
+    ecole_privee(const char *n = NULL, const char *adr = NULL, int nb_ens = 0, const int *nb_eleve_par_niv = NULL,
+                 const char *g = NULL, double cap = 0.0)
+        : ecole(n, adr, nb_ens, nb_eleve_par_niv), capital(cap) {
+        
+        if (g) {
+            gerant = new char[strlen(g) + 1];
+            strcpy(gerant, g);
+        } else {
+            gerant = NULL;
+        }
+    }
+
+    
+    ~ecole_privee() override {
+        delete[] gerant;
+        gerant = NULL;
+    }
+
+    
+    operator char *() const override {
+        char *base_info = ecole::operator char*();
+        static char buffer[700]; 
+        
+        snprintf(buffer, sizeof(buffer),
+                 "%sGérant : %s\nCapital : %.2f",
+                 base_info, (gerant ? gerant : "Non spécifié"), capital);
+        
+        return buffer;
+    }
+
+   
+    void view() const override {
+        cout << "\n--- Détails de l'École Privée ---\n";
+        cout << (char *)(*this) << endl;
+    }
+};
+
+
+int main() {
+    
+    int eleves_e1[6] = {25, 26, 24, 28, 27, 25};
+    int eleves_ep1[6] = {20, 22, 21, 23, 20, 22};
+    
+    cout << "--- Illustration du Polymorphisme ---\n";
+    
+    try {
+        
+        ecole ecole_standard("Ecole Normale Z", "Détails Standards", 10, eleves_e1);
+        ecole_privee ecole_private("Ecole Privée X", "Détails Privés", 8, eleves_ep1, "Mr. Smith", 50000.50);
+        ecole *liste_ecoles[2];
+        liste_ecoles[0] = &ecole_standard;
+        liste_ecoles[1] = &ecole_private;
+        for (int i = 0; i < 2; ++i) {
+            liste_ecoles[i]->view(); 
+        }
+        
+    } catch (const out_of_range& e) {
+        cerr << "Erreur : " << e.what() << endl;
+    } catch (const exception& e) {
+        cerr << "Une erreur inattendue s'est produite : " << e.what() << endl;
+    }
+
+    return 0;
+}
