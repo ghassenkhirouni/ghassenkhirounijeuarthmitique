@@ -1,3 +1,54 @@
+<!--  Jeu de calcul mental - Opérations aléatoires à résoudre rapidement. Score et meilleur score locaux. Feedback visuel pour bonnes/mauvaises réponses. Responsive et interactif. Travail sur DOM et setInterval
+
+Technologies utilisées dans mon projet :
+1) HTML 
+<header>, <section>, <aside>, <footer>
+Une structure sémantique moderne
+Attributs d’accessibilité (role="application", inputmode="numeric")
+Formulaires : <input>, <select>, <button>
+2) CSS 
+Variables CSS ( root )
+Flexbox & Grid Layout
+Media Queries
+Animations CSS
+3) JS
+Gestion de l’interface
+Timers
+LocalStorage
+Web Audio API
+DOM Manipulation
+
+Fonctionnalités principales :
+Génération aléatoire d’opérations (+ - * / )
+Système de difficulté ( facile moyen diificile )
+Timer dynamique
+Système de score
+Feedback instantané ( animation et son )
+Sauvegarde du meilleur score (localStorage)
+key shortcuts 
+
+https://vscode.dev/github/ghassenkhirouni/ghassenkhirounijeuarthmitique/blob/main/rendu%20final
+
+Nouveautés explorées :
+key shortcuts 
+maitrise des animations et son en js 
+maitrise de Css 
+maitrise de localstorage and DOM 
+
+Difficultés rencontrées :
+Gestion de  temps 
+eviter la division par 0 
+DOM manipulation 
+Gestion des erreurs utilisateur
+Organisation du code (modularité)
+Intégration de sons avec la Web Audio API
+
+Solutions apportées : 
+regarder des sites qui ont les memes fonctionalites que  mon site pour trouver des idees 
+utiliser  youtube et IA 
+utiliser le cours
+
+-->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -271,7 +322,6 @@
     </div>
   </div>
   <script>
-    // Elements
     const startBtn = document.getElementById('startBtn');
     const resetBtn = document.getElementById('resetBtn');
     const submitBtn = document.getElementById('submitBtn');
@@ -413,7 +463,6 @@
       clearInterval(state.intervalId);
       bar.style.width='100%';
       setTimeout(()=>{
-        // update best
         if(state.score > state.best){ state.best = state.score; localStorage.setItem('jeucalc_best', state.best); }
         updateUI();
         if(state.running) nextQuestion();
